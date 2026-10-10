@@ -48,6 +48,16 @@ POLL_TIMEOUT = 900
 SERIAL_PORT = os.environ.get("VENDING_SERIAL_PORT", "").strip()
 SERIAL_BAUD_RATE = int(os.environ.get("VENDING_SERIAL_BAUD", "9600"))
 
+# Pastikan environment variables dari .env ter-load
+# .env dibaca oleh configuration.py saat import, tapi pastikan tersedia
+if not SERIAL_PORT:
+    import warnings
+    warnings.warn(
+        "VENDING_SERIAL_PORT not set. Sambungan Arduino akan dinonaktifkan. "
+        "Setel environment variable atau sesuaikan .env file.",
+        UserWarning,
+    )
+
 
 # 1. Product and order data
 STOCK_FILE = os.environ.get('VENDING_STOCK') or os.path.join(

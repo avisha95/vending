@@ -1,13 +1,14 @@
 #include <Arduino.h>
 
 const uint8_t SLOT_COUNT = 6;
-const unsigned long DISPENSE_DURATION_MS = 1000;
+const unsigned long DISPENSE_DURATION_MS = 5000;
+const unsigned long READY_INTERVAL_MS = 10000;
 const bool RELAY_ACTIVE_LOW = true;
 
 #if defined(ARDUINO_ARCH_ESP32)
-const uint8_t RELAY_PINS[SLOT_COUNT] = {4, 16, 17, 18, 19, 21};
+const uint8_t RELAY_PINS[SLOT_COUNT] = {4, 16, 17, 5, 18, 19};
 #else
-const uint8_t RELAY_PINS[SLOT_COUNT] = {2, 3, 4, 5, 6, 7};
+const uint8_t RELAY_PINS[SLOT_COUNT] = {13, 12, 11, 9, 8, 7};
 #endif
 
 const uint8_t RELAY_ON = RELAY_ACTIVE_LOW ? LOW : HIGH;
@@ -62,4 +63,10 @@ void loop() {
 
   Serial.print("DONE,");
   Serial.println(slot);
+
+  static unsigned long lastReady = 0;
+  if (millis() - lastReady >= READY_INTERVAL_MS) {
+    Serial.println("READY");
+    lastReady = millis();
+  }
 }

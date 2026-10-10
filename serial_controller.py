@@ -10,28 +10,47 @@ RESPONSE_TIMEOUT = 5.0
 serial_connection = None
 
 
+def list_ports():
+    """Daftar port serial yang tersedia."""
+    return [p.device for p in serial.tools.list_ports.comports()]
+
+
 def connect(port, baud_rate=9600):
     """Connect to the controller and wait for its READY message."""
     global serial_connection
 
     disconnect()
-    connection = serial.Serial(
-        port=port,
-        baudrate=baud_rate,
-        timeout=0.2,
-        write_timeout=2.0,
-    )
+    try:
+        connection = serial.Serial(
+            port=port,
+            baudrate=baud_rate,
+            timeout=0.2,
+            write_timeout=2.0,
+        )
+    except (OSError, serial.SerialException) as exc:
+        raise RuntimeError(f"Tidak dapat membuka port {port}: {exc}") from exc
+
     serial_connection = connection
 
     try:
         connection.reset_input_buffer()
         deadline = time.monotonic() + READY_TIMEOUT
         while time.monotonic() < deadline:
-            response = connection.readline().decode("utf-8", "replace").strip()
-            if response == "READY":
+            raw_line = connection.readline()
+            response = raw_line.decode("utf-8", "replace").strip()
+            # CH340/CP2102 sometimes prefixes garbage bytes before READY
+            # Cek apakah READY ada di dalam baris (bisa di akhir baris setelah byte sampah)
+            if "READY" in response:
+                # Ekstrak hanya bagian READY-nya
+                idx = response.find("READY")
+                response = response[idx:idx+5].strip()
+                if response == "READY":
+                    return
+            elif response == "READY":
                 return
         raise TimeoutError(
-            f"Tidak menerima READY dari kontroler pada {port}."
+            f"Tidak menerima READY dari kontroler pada {port}. "
+            "Pastikan Arduino sudah di-reset (tekan tombol Reset) lalu jalankan again."
         )
     except (OSError, serial.SerialException, TimeoutError):
         disconnect()
